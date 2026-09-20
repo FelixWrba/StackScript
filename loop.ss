@@ -7,7 +7,7 @@ def 0
 print
 push 1
 add
-push 100
+push 10
 if less
 goto 1
 pop

@@ -131,41 +131,39 @@ int main(int argc, char **argv) {
   struct Instr instructions[32] = {};
   int instrNum = 0;
 
+  int defList[16] = {};
+  int defSlot = 0;
+
   while (fgets(fcontent, 64, fptr)) {
     struct Instr newInstr = {};
     int error = parseInstr(fcontent, &newInstr);
     if (error) {
       // handle error
       return 1;
-    } else {
-      if (newInstr.arg_str != 2) {
-        instructions[instrNum] = newInstr;
-        instrNum++;
+    }
+    // save new instruction when not comment
+    if (newInstr.arg_str != 2) {
+      instructions[instrNum] = newInstr;
+      instrNum++;
+      // save define sections for further lookup
+      if (newInstr.cmd == 30079725) {
+        int defIdent = strtol(newInstr.arg, NULL, 10);
+
+        if (defIdent < 0 || defIdent > 15) {
+          printf("Range Error: section definition out of range 0-15\n");
+          return 1;
+        }
+
+        defList[defIdent] = instrNum;
       }
     }
   }
 
+  // execute program
   float stack[64] = {};
   int newSlot = 0;
 
-  int defList[16] = {};
-  int defSlot = 0;
-
   int exit = 0;
-
-  // save defined sections
-  for (int i = 0; i < 32; i++) {
-    if (instructions[i].cmd == 30079725) {
-      int defIdent = strtol(instructions[i].arg, NULL, 10);
-
-      if (defIdent < 0 || defIdent > 15) {
-        printf("Range Error: section definition out of range 0-15\n");
-        return 1;
-      }
-
-      defList[defIdent] = i;
-    }
-  }
 
   for (int i = 0; i < 32; i++) {
     if (exit)
