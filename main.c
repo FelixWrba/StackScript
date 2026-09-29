@@ -3,7 +3,6 @@
 #include <string.h>
 
 #define INSTR_SIZE 64
-#define STACK_SIZE 32
 
 int hash(const char *str) {
   if (!str)
@@ -131,11 +130,16 @@ int main(int argc, char **argv) {
   char fcontent[64];
 
   // generate program instructions line-by-line
-  int instrCount = 16;
+  int instrCapacity = 16;
   int instrNum = 0;
-  struct Instr instructions[instrCount] = {};
+  struct Instr *instructions = malloc(instrCapacity * sizeof(struct Instr));
 
-  int defList[16] = {};
+  if (instructions == NULL) {
+    printf("Memory allocation failed\n");
+    return 1;
+  }
+
+  int defList[32] = {};
   int defSlot = 0;
 
   while (fgets(fcontent, 64, fptr)) {
@@ -149,8 +153,16 @@ int main(int argc, char **argv) {
     if (newInstr.argStr != 2) {
 
       // extend instr buffer
-      if(instrNum == instrCount) {
-        printf("warn: buffer overflow\n");
+      if (instrNum == instrCapacity) {
+        struct Instr *newPtr =
+            realloc(instructions, sizeof(struct Instr) * instrCapacity * 2);
+
+        if (newPtr == NULL) {
+          printf("Memory reallocation failed\n");
+          return 1;
+        }
+        instrCapacity *= 2;
+        instructions = newPtr;
       }
 
       instructions[instrNum] = newInstr;
@@ -160,7 +172,7 @@ int main(int argc, char **argv) {
         int defIdent = strtol(newInstr.arg, NULL, 10);
 
         if (defIdent < 0 || defIdent > 15) {
-          printf("Range Error: section definition out of range 0-15\n");
+          printf("Range Error: section definition out of range 0-31\n");
           return 1;
         }
 
@@ -170,12 +182,18 @@ int main(int argc, char **argv) {
   }
 
   // execute program
-  float stack[STACK_SIZE] = {};
+  int stackCapacity = 4;
   int newSlot = 0;
+  float *stack = malloc(sizeof(float) * stackCapacity);
+
+  if (stack == NULL) {
+    printf("Failed to allocate stack memory\n");
+    return 0;
+  }
 
   int exit = 0;
 
-  for (int i = 0; i < instrCount; i++) {
+  for (int i = 0; i < instrNum; i++) {
     if (exit)
       break;
 
@@ -185,6 +203,15 @@ int main(int argc, char **argv) {
       break;
 
     case 559112230: // push
+      if (newSlot == stackCapacity) {
+        float *newPtr = realloc(stack, sizeof(float) * stackCapacity * 2);
+        if (newPtr == NULL) {
+          printf("Failed to reallocate memory for stack\n");
+          return 1;
+        }
+        stack = newPtr;
+      }
+
       stack[newSlot] = strtof(cInstr->arg, NULL);
       newSlot++;
       break;
@@ -200,6 +227,14 @@ int main(int argc, char **argv) {
       break;
 
     case 1498617564: // dup
+      if (newSlot == stackCapacity) {
+        float *newPtr = realloc(stack, sizeof(float) * stackCapacity * 2);
+        if (newPtr == NULL) {
+          printf("Failed to reallocate memory for stack\n");
+          return 1;
+        }
+        stack = newPtr;
+      }
       stack[newSlot] = stack[newSlot - 1];
       newSlot++;
       break;
@@ -261,6 +296,14 @@ int main(int argc, char **argv) {
           return 1;
         }
       }
+      if (newSlot == stackCapacity) {
+        float *newPtr = realloc(stack, sizeof(float) * stackCapacity * 2);
+        if (newPtr == NULL) {
+          printf("Failed to reallocate memory for stack\n");
+          return 1;
+        }
+        stack = newPtr;
+      }
 
       stack[newSlot] = input;
       newSlot++;
@@ -315,5 +358,6 @@ int main(int argc, char **argv) {
   }
 
   fclose(fptr);
+  free(instructions);
   return 0;
 }

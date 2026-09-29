@@ -1,15 +1,18 @@
-push 0
-push 62
+push 0 ; attempts
+push 62 ; random number
 ; guess
 def 1
+; check if guess limit
 swap
 push 1
 add
 push 5
-if more
-read "Input number: "
+if less
+goto 7
 pop
 swap
+; compare guess number
+read "Input number: "
 if same
 goto 5
 if less
