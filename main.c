@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define INSTR_SIZE 64
+#define STACK_SIZE 32
+
 int hash(const char *str) {
   if (!str)
     return 0;
@@ -29,19 +32,19 @@ int hash(const char *str) {
 
 struct Instr {
   int cmd;
-  int arg_str;
+  int argStr;
   char arg[56];
 };
 
-int parseInstr(char instr[64], struct Instr *parse_dest) {
+int parseInstr(char instr[INSTR_SIZE], struct Instr *parseDest) {
   instr[strlen(instr) - 1] = 0;
   int i = 0;
-  int i_cmd = 0;
-  int i_arg = -1;
+  int iCmd = 0;
+  int iArg = -1;
   char cmd[8] = {};
   char arg[56] = {};
   int escape = 0;
-  int arg_str = 0;
+  int argStr = 0;
   while (i < 64) {
     char cchar = instr[i];
 
@@ -52,7 +55,7 @@ int parseInstr(char instr[64], struct Instr *parse_dest) {
     // comment
     if (cchar == ';') {
       if (!cmd[0]) {
-        parse_dest->arg_str = 2;
+        parseDest->argStr = 2;
       }
       break;
     }
@@ -60,17 +63,17 @@ int parseInstr(char instr[64], struct Instr *parse_dest) {
     // space
     if (cchar == ' ') {
       if (escape) {
-        arg[i_arg] = cchar;
-        i_arg++;
+        arg[iArg] = cchar;
+        iArg++;
       } else {
         // leading space
-        if (i_cmd == 0) {
+        if (iCmd == 0) {
           printf("Syntax error: invalid command leading space\n");
           return 1;
         }
         // handle cmd-arg seperation space
         else {
-          i_arg = 0;
+          iArg = 0;
         }
       }
     }
@@ -79,29 +82,29 @@ int parseInstr(char instr[64], struct Instr *parse_dest) {
       if (escape) {
         escape = 0;
       } else {
-        arg_str = 1;
+        argStr = 1;
         escape = 1;
       }
     }
     // char
     else {
       // cmd
-      if (i_arg == -1) {
-        cmd[i_cmd] = cchar;
-        i_cmd++;
+      if (iArg == -1) {
+        cmd[iCmd] = cchar;
+        iCmd++;
       }
       // arg
       else {
-        arg[i_arg] = cchar;
-        i_arg++;
+        arg[iArg] = cchar;
+        iArg++;
       }
     }
     i++;
   }
 
-  parse_dest->cmd = hash(cmd);
-  strcpy(parse_dest->arg, arg);
-  parse_dest->arg_str = arg_str;
+  parseDest->cmd = hash(cmd);
+  strcpy(parseDest->arg, arg);
+  parseDest->argStr = argStr;
 
   return 0;
 }
@@ -128,8 +131,9 @@ int main(int argc, char **argv) {
   char fcontent[64];
 
   // generate program instructions line-by-line
-  struct Instr instructions[32] = {};
+  int instrCount = 16;
   int instrNum = 0;
+  struct Instr instructions[instrCount] = {};
 
   int defList[16] = {};
   int defSlot = 0;
@@ -142,7 +146,13 @@ int main(int argc, char **argv) {
       return 1;
     }
     // save new instruction when not comment
-    if (newInstr.arg_str != 2) {
+    if (newInstr.argStr != 2) {
+
+      // extend instr buffer
+      if(instrNum == instrCount) {
+        printf("warn: buffer overflow\n");
+      }
+
       instructions[instrNum] = newInstr;
       instrNum++;
       // save define sections for further lookup
@@ -160,12 +170,12 @@ int main(int argc, char **argv) {
   }
 
   // execute program
-  float stack[64] = {};
+  float stack[STACK_SIZE] = {};
   int newSlot = 0;
 
   int exit = 0;
 
-  for (int i = 0; i < 32; i++) {
+  for (int i = 0; i < instrCount; i++) {
     if (exit)
       break;
 
@@ -220,7 +230,7 @@ int main(int argc, char **argv) {
       break;
 
     case 11587803: // print
-      if (cInstr->arg_str) {
+      if (cInstr->argStr) {
         printf("%s\n", cInstr->arg);
       } else {
         printf("%f\n", stack[newSlot - 1]);
@@ -232,7 +242,7 @@ int main(int argc, char **argv) {
       int result;
 
       while (1) {
-        if (cInstr->arg_str) {
+        if (cInstr->argStr) {
           printf("%s", cInstr->arg);
         }
 
