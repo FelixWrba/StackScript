@@ -332,8 +332,8 @@ int main(int argc, char **argv) {
     case 371664971: // goto
       int gotoIdent = strtol(cInstr->arg, NULL, 10);
 
-      if (gotoIdent < 0 || gotoIdent > 15) {
-        printf("Range Error: section definition call out of range 0-15\n");
+      if (gotoIdent < 0 || gotoIdent > 31) {
+        printf("Range Error: defined section out of range 0-31\n");
         return 1;
       }
       i = defList[gotoIdent] - 1;
